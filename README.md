@@ -1,12 +1,12 @@
-# Griphook — MS SQL Query Skill for Claude Code
+# Griphook — MS SQL Query CLI for AI agents
 
-A Claude Code skill that enables AI agents to execute **read-only** SQL queries against Microsoft SQL Server databases safely.
+A command line interface application built to safely execute read-only SQL queries against Microsoft SQL Server. It enforces strict read-only policies, injects automatic row limits, and provides structured JSON output for seamless integration with AI agents.
 
 ## Features
 
 - **Read-only enforcement**: Blocks all write operations via sqlglot AST parsing (INSERT, UPDATE, DELETE, DROP, ALTER, CREATE, EXEC, and nested writes inside CTEs)
 - **Automatic row limit**: Injects `TOP 100` when no explicit limit is present
-- **Two-tier timeout**: Warning at 5 s, hard kill at 20 s
+- **Two-tier timeout**: Warning at 5 seconds, hard kill at 20 seconds
 - **JSON output**: Clean stdout JSON for agent consumption; warnings and errors go to stderr
 - **Flexible config**: Credentials via env vars, `.env` file, or `griphook configure`
 

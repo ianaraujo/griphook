@@ -109,7 +109,7 @@ def query(
 @app.command()
 def configure() -> None:
     """Configure database connection credentials."""
-    typer.echo(f"Settings will be saved to [bold]{CONFIG_FILE}[/bold]\n")
+    typer.echo(f"Settings will be saved to {CONFIG_FILE}\n")
 
     server = typer.prompt("SQL Server hostname")
     database = typer.prompt("Database name")
