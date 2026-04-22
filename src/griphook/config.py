@@ -16,7 +16,6 @@ class Config:
     trust_cert: bool
     warn_timeout: int
     kill_timeout: int
-    registry_path: Path
 
     @property
     def connection_string(self) -> str:
@@ -70,10 +69,6 @@ def load_config(env_file: Path | None = None) -> Config:
             "  Explicit file  →  griphook --env-file /path/to/.env query '...'"
         )
 
-    registry_path = Path(
-        _get("SQL_PROXY_REGISTRY_PATH", "~/.sql-proxy/registry.db")
-    ).expanduser()
-
     return Config(
         server=_get("SQL_SERVER"),
         database=_get("SQL_DATABASE"),
@@ -83,5 +78,4 @@ def load_config(env_file: Path | None = None) -> Config:
         trust_cert=_get("SQL_TRUST_CERT", "true").lower() == "true",
         warn_timeout=int(_get("SQL_WARN_TIMEOUT", "5")),
         kill_timeout=int(_get("SQL_KILL_TIMEOUT", "20")),
-        registry_path=registry_path,
     )
