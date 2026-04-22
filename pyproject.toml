@@ -1,9 +1,27 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
-name = "mssql-query-skill"
-version = "0.1.0"
-description = "Add your description here"
+name = "griphook"
+version = "1.0.0"
+description = "Read-only SQL Server CLI query tool for AI agents"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "pymssql>=2.3.13",
+    "pyodbc>=5.0.0",
+    "sqlglot>=26.0.0",
+    "typer>=0.15.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0",
+]
+
+[project.scripts]
+griphook = "griphook.main:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/griphook"]
