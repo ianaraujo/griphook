@@ -34,6 +34,15 @@ griphook query "SELECT TOP 10 * FROM orders"
 # Execute a query
 griphook query "SELECT * FROM agents"
 
+# Explore a table with compact defaults
+griphook explore onshore.produtos
+
+# Expand related tables and switch to verbose metadata
+griphook explore onshore.produtos --depth 2 --verbose
+
+# Tune token footprint
+griphook explore onshore.produtos --sample-rows 1 --profile-columns 2 --top-values 3
+
 # Validate without executing
 griphook query --dry-run "SELECT * FROM agents"
 
@@ -53,6 +62,18 @@ griphook --env-file /path/to/.env query "SELECT 1"
   "warned": false
 }
 ```
+
+The `explore` command returns a compact table report by default with:
+
+- table identity and row count
+- compact column metadata
+- primary and unique constraints
+- direct incoming and outgoing foreign keys
+- a small sample set and targeted profiles
+- no neighbor expansion unless `--depth` is set above `0`
+
+Use `--verbose` to include full column metadata, check constraints, and index detail.
+Use `--sample-rows`, `--profile-columns`, and `--top-values` to reduce token usage further.
 
 **Error** (`exit 1` — blocked/timeout/SQL error, `exit 2` — config/connection error):
 ```json

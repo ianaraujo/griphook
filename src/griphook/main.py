@@ -12,8 +12,9 @@ from griphook.proxy import (
     BlockedQueryError,
     DatabaseConnectionError,
     QueryTimeoutError,
-    execute,
+    explore_table,
     inject_limit,
+    execute_query,
     validate_select_only,
 )
 
@@ -71,7 +72,7 @@ def query(
         raise typer.Exit(2)
 
     try:
-        result = execute(sql, cfg)
+        result = execute_query(sql, cfg)
     except BlockedQueryError as exc:
         typer.echo(json.dumps({"error": str(exc)}), err=True)
         raise typer.Exit(1)
@@ -104,6 +105,84 @@ def query(
             default=str,
         )
     )
+
+
+@app.command()
+def explore(
+    table_name: Annotated[str, typer.Argument(help="Table name to inspect, in schema.table form")],
+    depth: Annotated[
+        int,
+        typer.Option(
+            "--depth",
+            help="How many hops of related tables to include. `0` keeps the output to the current table only.",
+        ),
+    ] = 0,
+    sample_rows: Annotated[
+        int,
+        typer.Option(
+            "--sample-rows",
+            help="How many sample rows to include for the current table. Set to `0` to skip samples.",
+        ),
+    ] = 2,
+    profile_columns: Annotated[
+        int,
+        typer.Option(
+            "--profile-columns",
+            help="How many informative columns to profile for the current table. Set to `0` to skip profiles.",
+        ),
+    ] = 3,
+    top_values: Annotated[
+        int,
+        typer.Option(
+            "--top-values",
+            help="How many most-common values to return for text profiles.",
+        ),
+    ] = 3,
+    verbose: Annotated[
+        bool,
+        typer.Option(
+            "--verbose/--no-verbose",
+            help="Include full column metadata, checks, and index detail instead of the compact default.",
+        ),
+    ] = False,
+) -> None:
+    """Explore a SQL Server table and print a structured JSON summary.
+
+    The default output is compact and tuned for agents. Use ``--verbose`` for
+    full table metadata, ``--depth`` to expand related tables, and the other
+    options to trim or expand sample/profile data. The zero-config default keeps
+    the current table only.
+    """
+    try:
+        cfg = load_config(_state.env_file)
+    except RuntimeError as exc:
+        typer.echo(json.dumps({"error": str(exc)}), err=True)
+        raise typer.Exit(2)
+
+    try:
+        result = explore_table(
+            table_name,
+            cfg,
+            depth=depth,
+            verbose=verbose,
+            sample_rows=sample_rows,
+            profile_columns=profile_columns,
+            top_values=top_values,
+        )
+    except BlockedQueryError as exc:
+        typer.echo(json.dumps({"error": str(exc)}), err=True)
+        raise typer.Exit(1)
+    except QueryTimeoutError as exc:
+        typer.echo(json.dumps({"error": str(exc), "duration_ms": exc.duration_ms}), err=True)
+        raise typer.Exit(1)
+    except DatabaseConnectionError as exc:
+        typer.echo(json.dumps({"error": str(exc)}), err=True)
+        raise typer.Exit(2)
+    except Exception as exc:
+        typer.echo(json.dumps({"error": f"Table exploration failed: {exc}"}), err=True)
+        raise typer.Exit(1)
+
+    typer.echo(json.dumps(result, indent=2, default=str))
 
 
 @app.command()
