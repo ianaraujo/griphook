@@ -3,6 +3,14 @@ name: Windows installer
 on:
   push:
     tags: ["v*"]
+  # Build (but don't release) on PRs that touch the app or the packaging, so a
+  # broken .iss or spec is caught before it reaches main.
+  pull_request:
+    paths:
+      - "src/**"
+      - "packaging/**"
+      - "pyproject.toml"
+      - ".github/workflows/windows-installer.yml"
   workflow_dispatch:
 
 jobs:
