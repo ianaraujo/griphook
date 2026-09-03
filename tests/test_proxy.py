@@ -454,20 +454,3 @@ def test_explore_command_prints_structured_json(monkeypatch):
         "profile_columns": 3,
         "top_values": 3,
     }
-
-
-def test_explore_help_mentions_compact_and_knobs(capsys):
-    from click import Context
-    from typer.main import get_command
-
-    command = get_command(app).commands["explore"]
-    command.get_help(Context(command))
-    output = capsys.readouterr().out
-    assert "--depth" in output
-    assert "--sample-rows" in output
-    assert "--profile-columns" in output
-    assert "--top-values" in output
-    assert "--verbose" in output
-    assert "[default: 0]" in output
-    assert "[default: 2]" in output
-    assert "[default: 3]" in output

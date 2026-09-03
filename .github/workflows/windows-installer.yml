@@ -1,0 +1,93 @@
+name: Windows installer
+
+on:
+  push:
+    tags: ["v*"]
+  # Build (but don't release) on PRs that touch the app or the packaging, so a
+  # broken .iss or spec is caught before it reaches main.
+  pull_request:
+    paths:
+      - "src/**"
+      - "packaging/**"
+      - "pyproject.toml"
+      - ".github/workflows/windows-installer.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --group dev --group build
+
+      - name: Run tests
+        run: uv run pytest -q
+
+      - name: Read version from pyproject.toml
+        id: version
+        shell: pwsh
+        run: |
+          $v = (Select-String -Path pyproject.toml -Pattern '^version = "(.+)"').Matches[0].Groups[1].Value
+          "version=$v" >> $env:GITHUB_OUTPUT
+
+      - name: Build griphook.exe
+        run: uv run pyinstaller packaging/griphook.spec --noconfirm --distpath dist --workpath build
+
+      - name: Smoke-test the executable
+        shell: pwsh
+        run: |
+          # griphook reports errors as JSON on stderr by design, and the default
+          # $ErrorActionPreference of 'Stop' turns any native stderr write into a
+          # step failure — so judge the commands by their exit codes only.
+          $ErrorActionPreference = 'Continue'
+
+          .\dist\griphook\griphook.exe --help 2>&1 | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw "--help exited with $LASTEXITCODE" }
+
+          # Must fail cleanly (exit 2) with no configuration present, not crash.
+          $out = .\dist\griphook\griphook.exe test-connection 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 2) { throw "test-connection exited with $LASTEXITCODE, expected 2" }
+          if ($out -notmatch 'Missing required config') { throw "unexpected output: $out" }
+
+          Write-Host 'Smoke test passed.'
+          # pwsh steps exit with the last $LASTEXITCODE, which is still 2 here.
+          $global:LASTEXITCODE = 0
+
+      # Optional: set the repository variable ODBC_MSI_URL to the Microsoft
+      # download link for msodbcsql18 (x64 .msi) and the installer will bundle
+      # it, so machines without the driver are fixed during setup. Without it,
+      # the installer detects the missing driver and explains what to ask IT for.
+      - name: Download the ODBC driver MSI
+        if: vars.ODBC_MSI_URL != ''
+        shell: pwsh
+        run: Invoke-WebRequest -Uri "${{ vars.ODBC_MSI_URL }}" -OutFile packaging\msodbcsql18.msi
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Build the installer
+        shell: pwsh
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
+            /DAppVersion=${{ steps.version.outputs.version }} `
+            packaging\griphook.iss
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Griphook-Setup-${{ steps.version.outputs.version }}
+          path: dist/installer/*.exe
+          if-no-files-found: error
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/installer/*.exe
