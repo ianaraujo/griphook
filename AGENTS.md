@@ -35,7 +35,17 @@ griphook --env-file /path/to/.env query "SELECT 1"
 
 `env vars` > `--env-file` > `cwd .env` > `~/.config/griphook/.env`
 
-Required vars: `SQL_SERVER`, `SQL_DATABASE`, `SQL_USER`, `SQL_PASSWORD`.
+Required vars: `SQL_SERVER`, `SQL_DATABASE`, plus `SQL_USER`/`SQL_PASSWORD` unless
+`SQL_AUTH=windows` (Windows Authentication, which needs neither). `SQL_DRIVER`
+overrides ODBC driver auto-detection (18 → 17 → older).
+
+## Windows
+
+`griphook test-connection` verifies a connection and prints the login it
+connected as. The Windows installer (`packaging/griphook.iss`, built by
+`.github/workflows/windows-installer.yml`) is a per-user Inno Setup wizard that
+calls `griphook configure --non-interactive` at the end; see
+`docs/instalacao-windows.md` for the end-user guide.
 
 ## Output
 
@@ -48,7 +58,13 @@ If no `TOP N` or `OFFSET/FETCH` clause is present, `TOP 100` is injected automat
 src/griphook/
   __init__.py   # exports app
   main.py       # Typer CLI + query execution logic
-  config.py     # Config dataclass, env loading
+  config.py     # Config dataclass, env loading, auth mode, ODBC driver detection
+  proxy.py      # AST validation, limit injection, query execution, explore
+packaging/
+  launcher.py       # PyInstaller entry point
+  griphook.spec     # PyInstaller build (onedir)
+  version_info.txt  # Windows version resource
+  griphook.iss      # Inno Setup installer (per-user, no admin)
 pyproject.toml
 .env.example
 ```
