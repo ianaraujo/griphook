@@ -44,10 +44,22 @@ jobs:
       - name: Smoke-test the executable
         shell: pwsh
         run: |
-          .\dist\griphook\griphook.exe --help
+          # griphook reports errors as JSON on stderr by design, and the default
+          # $ErrorActionPreference of 'Stop' turns any native stderr write into a
+          # step failure — so judge the commands by their exit codes only.
+          $ErrorActionPreference = 'Continue'
+
+          .\dist\griphook\griphook.exe --help 2>&1 | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw "--help exited with $LASTEXITCODE" }
+
           # Must fail cleanly (exit 2) with no configuration present, not crash.
-          .\dist\griphook\griphook.exe test-connection
-          if ($LASTEXITCODE -ne 2) { throw "expected exit code 2, got $LASTEXITCODE" }
+          $out = .\dist\griphook\griphook.exe test-connection 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 2) { throw "test-connection exited with $LASTEXITCODE, expected 2" }
+          if ($out -notmatch 'Missing required config') { throw "unexpected output: $out" }
+
+          Write-Host 'Smoke test passed.'
+          # pwsh steps exit with the last $LASTEXITCODE, which is still 2 here.
+          $global:LASTEXITCODE = 0
 
       # Optional: set the repository variable ODBC_MSI_URL to the Microsoft
       # download link for msodbcsql18 (x64 .msi) and the installer will bundle
