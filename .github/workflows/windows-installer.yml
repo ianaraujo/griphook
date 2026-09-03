@@ -16,6 +16,10 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    # The default GITHUB_TOKEN is read-only here, which makes the release step
+    # fail with 403 on a tag build.
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
