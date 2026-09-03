@@ -456,9 +456,14 @@ def test_explore_command_prints_structured_json(monkeypatch):
     }
 
 
-def test_explore_help_mentions_compact_and_knobs(capsys):
+def test_explore_help_mentions_compact_and_knobs(capsys, monkeypatch):
     from click import Context
     from typer.main import get_command
+
+    # Rich sizes the help panel from the terminal width and truncates option
+    # names when it is narrow, so pin a width instead of inheriting the runner's.
+    monkeypatch.setenv("COLUMNS", "200")
+    monkeypatch.setattr("typer.rich_utils.MAX_WIDTH", 200, raising=False)
 
     command = get_command(app).commands["explore"]
     command.get_help(Context(command))
