@@ -140,7 +140,7 @@ uv run pytest           # run all tests
 uv run pytest -v        # verbose output
 ```
 
-### Test inventory (38 tests, zero DB required)
+### Test inventory (37 tests, zero DB required)
 
 **`validate_select_only`**
 - `DELETE` statement is blocked
@@ -185,7 +185,7 @@ uv run pytest -v        # verbose output
 
 - Python 3.12+
 - [uv](https://github.com/astral-sh/uv) package manager
-- SQL Server with ODBC Driver 18
+- SQL Server with the Microsoft ODBC Driver 18 (or 17)
 
 ## License
 
